@@ -7,17 +7,22 @@ var Engine = function(server, options) {
       port   = this._options.port     || this.DEFAULT_PORT,
       db     = this._options.database || this.DEFAULT_DATABASE,
       auth   = this._options.password,
+      tls = this._options.tls,
       gc     = this._options.gc       || this.DEFAULT_GC,
       socket = this._options.socket;
 
   this._ns  = this._options.namespace || '';
+  redisOpts = { no_ready_check: true }
+  if (tls) {
+    redisOpts.tls = tls
+  }
 
   if (socket) {
-    this._redis = redis.createClient(socket, {no_ready_check: true});
-    this._subscriber = redis.createClient(socket, {no_ready_check: true});
+    this._redis = redis.createClient(socket, redisOpts);
+    this._subscriber = redis.createClient(socket, redisOpts);
   } else {
-    this._redis = redis.createClient(port, host, {no_ready_check: true});
-    this._subscriber = redis.createClient(port, host, {no_ready_check: true});
+    this._redis = redis.createClient(port, host, redisOpts);
+    this._subscriber = redis.createClient(port, host, redisOpts);
   }
 
   if (auth) {
