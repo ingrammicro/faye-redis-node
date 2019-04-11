@@ -17,6 +17,15 @@ var Engine = function(server, options) {
     redisOpts.tls = tls
   }
 
+  redisOpts.retry_strategy = (options) => {
+    if (options.times_connected >= 3) {
+        // End reconnecting after a specific number of tries and flush all commands with a individual error
+        return new Error('Retry attempts exhausted');
+    }
+    // reconnect after
+    return 1000;
+}
+
   if (socket) {
     this._redis = redis.createClient(socket, redisOpts);
     this._subscriber = redis.createClient(socket, redisOpts);
@@ -25,10 +34,6 @@ var Engine = function(server, options) {
     this._subscriber = redis.createClient(port, host, redisOpts);
   }
 
-  // if (auth) {
-  //   this._redis.auth(auth);
-  //   this._subscriber.auth(auth);
-  // }
   this._redis.select(db);
   this._subscriber.select(db);
 
@@ -42,6 +47,10 @@ var Engine = function(server, options) {
     if (topic === self._messageChannel) self.emptyQueue(message);
     if (topic === self._closeChannel)   self._server.trigger('close', message);
   });
+  this._subscriber.on('uncaughtException', function (err) {
+    console.error(err.stack);
+    console.log("Node NOT Exiting...");
+   });
 
   this._gc = setInterval(function() { self.gc() }, gc * 1000);
 };
